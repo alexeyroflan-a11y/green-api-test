@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Green-api test Proskurin A.S</title>
+	<style>
+		body {
+			margin: 0;
+			font-family: Arial, sans-serif;
+		}
+		.container {
+			display: flex;
+			gap: 20px;
+			padding: 20px;
+			align-items: flex-start;
+		}
+		.left-panel {
+			flex: 0 0 300px;
+		}
+		.right-panel {
+			flex: 1;
+		}
+		input {
+			display: block;
+			margin-bottom: 10px;
+			width: 100%;
+			box-sizing: border-box;
+			padding: 6px;
+		}
+		button {
+			display: block;
+			margin-bottom: 10px;
+			padding: 8px 16px;
+			cursor: pointer;
+		}
+		#response {
+			width: 100%;
+			height: 500px;
+			padding: 10px;
+			box-sizing: border-box;
+			font-family: Consolas, monospace;
+			font-size: 14px;
+			resize: vertical;
+		}
+	</style>
+</head>
+<body>
+
+	<div class="container">
+		<div class="left-panel">
+			<input type="text" id="IdInstance" name="IdInstance" placeholder="IdInstance">
+			<input type="text" id="ApiTokenInstance" name="ApiTokenInstance" placeholder="ApiTokenInstance">
+			
+			<button type="button" id="btnGetSettings">getSettings</button>
+			<button type="button" id="btnGetStateInstance">getStateInstance</button>
+
+			<input type="text" id="PhoneNumber" name="PhoneNumber" placeholder="PhoneNumber">
+			<input type="text" id="TextMessage" name="TextMessage" placeholder="TextMessage">
+
+			<button type="button" id="btnSendMessage">sendMessage</button>
+
+			<input type="text" id="PhoneNumber2" name="PhoneNumber2" placeholder="PhoneNumber">
+			<input type="text" id="UrlPicture" name="UrlPicture" placeholder="UrlPicture">
+
+			<button type="button" id="btnSendFile">sendFile</button>
+		</div>
+
+		<div class="right-panel">
+			<textarea id="response" readonly placeholder="Ответ API появится здесь..."></textarea>
+		</div>
+	</div>
+
+<script>
+	const API_URL = 'https://7201.api.green-api.com';
+	const responseField = document.getElementById('response');
+
+	// Получить значения полей
+	function getIdInstance() {
+		return document.getElementById('IdInstance').value.trim();
+	}
+	function getApiToken() {
+		return document.getElementById('ApiTokenInstance').value.trim();
+	}
+
+	// Вывод ответа
+	function showResponse(text) {
+		responseField.value = text;
+	}
+
+	// Логгер с временной меткой
+	function logResponse(label, data) {
+		const time = new Date().toLocaleTimeString();
+		const text = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+		responseField.value = `[${time}] ${label}\n\n${text}`;
+		responseField.scrollTop = 0;
+	}
+
+	// Универсальная функция GET-запроса
+	async function doGet(method, label) {
+		const idInstance = getIdInstance();
+		const apiToken = getApiToken();
+
+		if (!idInstance || !apiToken) {
+			showResponse('Ошибка: заполните IdInstance и ApiTokenInstance');
+			return;
+		}
+
+		const url = `${API_URL}/waInstance${idInstance}/${method}/${apiToken}`;
+
+		try {
+			showResponse(`Запрос: GET ${url}\n\nОжидание ответа...`);
+
+			const res = await fetch(url, { method: 'GET' });
+			const data = await res.json();
+
+			logResponse(`${label} — статус ${res.status}`, data);
+		} catch (err) {
+			logResponse(`Ошибка запроса (${label})`, err.message || String(err));
+		}
+	}
+
+	// Универсальная функция POST-запроса с JSON-телом
+	async function doPost(method, body, label) {
+		const idInstance = getIdInstance();
+		const apiToken = getApiToken();
+
+		if (!idInstance || !apiToken) {
+			showResponse('Ошибка: заполните IdInstance и ApiTokenInstance');
+			return;
+		}
+
+		const url = `${API_URL}/waInstance${idInstance}/${method}/${apiToken}`;
+
+		try {
+			showResponse(`Запрос: POST ${url}\n\nТело:\n${JSON.stringify(body, null, 2)}\n\nОжидание ответа...`);
+
+			const res = await fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body)
+			});
+			const data = await res.json();
+
+			logResponse(`${label} — статус ${res.status}`, data);
+		} catch (err) {
+			logResponse(`Ошибка запроса (${label})`, err.message || String(err));
+		}
+	}
+
+	// getSettings
+	document.getElementById('btnGetSettings').addEventListener('click', () => {
+		doGet('getSettings', 'getSettings');
+	});
+
+	// getStateInstance
+	document.getElementById('btnGetStateInstance').addEventListener('click', () => {
+		doGet('getStateInstance', 'getStateInstance');
+	});
+
+	// sendMessage
+	document.getElementById('btnSendMessage').addEventListener('click', () => {
+		const phone = document.getElementById('PhoneNumber').value.trim();
+		const message = document.getElementById('TextMessage').value.trim();
+
+		if (!phone || !message) {
+			showResponse('Ошибка: заполните PhoneNumber и TextMessage');
+			return;
+		}
+
+		const chatId = phone.includes('@') ? phone : `${phone}@c.us`;
+
+		const body = {
+			chatId: chatId,
+			message: message
+		};
+
+		doPost('sendMessage', body, 'sendMessage');
+	});
+
+	// sendFile
+	document.getElementById('btnSendFile').addEventListener('click', () => {
+		const phone = document.getElementById('PhoneNumber2').value.trim();
+		const urlFile = document.getElementById('UrlPicture').value.trim();
+
+		if (!phone || !urlFile) {
+			showResponse('Ошибка: заполните PhoneNumber и UrlPicture');
+			return;
+		}
+
+		const chatId = phone.includes('@') ? phone : `${phone}@c.us`;
+
+		fileName = 'file.png';
+
+		const body = {
+			chatId: chatId,
+			urlFile: urlFile,
+			fileName: fileName,
+			caption: 'Horse'
+		};
+
+		doPost('sendFileByUrl', body, 'sendFileByUrl');
+	});
+</script>
+</body>
+</html>
